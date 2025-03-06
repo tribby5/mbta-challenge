@@ -8,6 +8,7 @@ from mbta_client import (
     get_subway_stop_to_routes_mapping,
     get_subway_routes_for_stop,
     get_subway_route_id_to_name_mapping,
+    get_subway_stop_name_to_id_mapping,
 )
 from models import Route, Stop
 
@@ -125,16 +126,24 @@ def find_shortest_path(
     return None
 
 
-# TODO allow for passing in names of the stop to map to ids
-def find_viable_path(stop_1: str, stop_2: str) -> list[str] | None:
+def find_viable_path(start_name: str, end_name: str) -> list[str] | None:
     """
     Determines a viable subway route between two stops, given their ids
-    :param stop_1: Start stop ID.
-    :param stop_2: Destination stop ID.
+    :param start_name: Name of starting stop.
+    :param end_name: Name of destination stop.
     :return: List of route names forming the path, or None if no path exists.
     """
-    routes_1 = get_subway_routes_for_stop(stop_1)
-    routes_2 = get_subway_routes_for_stop(stop_2)
+    name_to_id_mapping = get_subway_stop_name_to_id_mapping()
+    start_id = name_to_id_mapping.get(start_name.title())
+    end_id = name_to_id_mapping.get(end_name.title())
+
+    if not start_id or not end_id:
+        raise ValueError(
+            f"I'm sorry, please pass in valid stop names to find the path: start is valid: {start_id is not None}, end is valid: {end_id is not None}"
+        )
+
+    routes_1 = get_subway_routes_for_stop(start_id)
+    routes_2 = get_subway_routes_for_stop(end_id)
 
     if not (routes_1 and routes_2):
         raise ValueError("Routes not found for both stops.")
@@ -162,13 +171,17 @@ def find_viable_path(stop_1: str, stop_2: str) -> list[str] | None:
 
 
 if __name__ == "__main__":
-    print("Question 1:")
-    question_1()
-    print("\nQuestion 2:")
-    question_2()
-    print("\nQuestion 3:")
-    path = find_viable_path("70233", "70276")
-    if not path:
-        print("No path found :(")
-    else:
-        print(" -> ".join(path))
+    args = sys.argv[1:]  # Exclude the script name
+
+    if len(args) == 3 and args[0] == "find_path":
+        path = find_viable_path(args[1], args[2])
+        if not path:
+            print("No path found :(")
+        else:
+            print(f"Path from {args[1]} -> {args[2]}: {' -> '.join(path)}")
+    elif args[0] == "question_1":
+        print("Question 1:")
+        question_1()
+    elif args[0] == "question_2":
+        print("\nQuestion 2:")
+        question_2()

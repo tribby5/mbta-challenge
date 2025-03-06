@@ -32,6 +32,18 @@ def get_subway_routes() -> list[Route]:
     return [Route.from_json(item) for item in response.json()["data"]]
 
 
+@lru_cache(maxsize=1)
+def get_subway_stops() -> list[Stop]:
+    url = f"{MBTA_API_BASE_URL}/stops"
+    params = {
+        "filter[route_type]": "0,1",
+    }
+    headers = {"x-api-key": MBTA_API_KEY}
+    response = get(url=url, params=params, headers=headers)
+    response.raise_for_status()
+    return [Stop.from_json(item) for item in response.json()["data"]]
+
+
 @lru_cache()
 def get_stops_for_route(route_id: str) -> list[Stop]:
     url = f"{MBTA_API_BASE_URL}/stops"
@@ -70,3 +82,8 @@ def get_subway_routes_for_stop(stop_id: str) -> set[Route]:
 def get_subway_route_id_to_name_mapping() -> dict[str, str]:
     routes = get_subway_routes()
     return {r.id: r.long_name for r in routes}
+
+
+def get_subway_stop_name_to_id_mapping() -> dict[str, str]:
+    stops = get_subway_stops()
+    return {s.name: s.id for s in stops}
