@@ -1,6 +1,6 @@
 import sys
 from collections import defaultdict, deque
-from typing import Tuple
+from typing import Tuple, Dict, Hashable, Collection, TypeVar
 
 from mbta_client import (
     get_subway_routes,
@@ -40,18 +40,19 @@ def find_longest_and_shortest_route(
         if number_of_stops > most_in_a_route:
             most_in_a_route = number_of_stops
             route_with_most = route
-        elif number_of_stops < least_in_a_route:
+        if number_of_stops < least_in_a_route:
             least_in_a_route = number_of_stops
             route_with_least = route
 
     return (route_with_most, most_in_a_route), (route_with_least, least_in_a_route)
 
 
-def find_multi_route_stops(
-    stop_to_routes_mapping: dict[Stop, set[Route]],
-) -> dict[Stop, set[Route]]:
-    output = {k: v for k, v in stop_to_routes_mapping.items() if len(v) >= 2}
-    return output
+K = TypeVar("K", bound=Hashable)
+V = TypeVar("V", bound=Collection)
+
+
+def find_multi_value_items(mapping: Dict[K, V]) -> Dict[K, V]:
+    return {k: v for k, v in mapping.items() if len(v) >= 2}
 
 
 def question_2() -> None:
@@ -74,7 +75,8 @@ def question_2() -> None:
         f"\nRoute with the least stops: {route_with_least.long_name} with {least_in_a_route} stops"
     )
 
-    multi_route_stops = find_multi_route_stops(get_subway_stop_to_routes_mapping())
+    mapping = get_subway_stop_to_routes_mapping()
+    multi_route_stops = find_multi_value_items(mapping)
     print("\nStops that connect multiple routes:")
     for stop, routes in sorted(multi_route_stops.items()):
         print(f"{stop.name}: {', '.join(sorted(r.long_name for r in routes))}")
