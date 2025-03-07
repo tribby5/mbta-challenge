@@ -1,5 +1,6 @@
 import pytest
 
+
 # Don't need to have an api key set for testing
 @pytest.fixture(autouse=True)
 def set_api_key(monkeypatch):

@@ -1,6 +1,4 @@
-# mbta-challenge
-
-## MBTA CLI Tool
+# MBTA Challenge
 
 This Python application allows you to interact with the MBTA transit system through the command line. It provides functionality to list subway routes, find the longest and shortest routes, and find viable paths between two subway stops.
 
@@ -61,3 +59,11 @@ or to see information about a specific command
 ```bash
 python main.py [COMMAND] --help
 ```
+
+### Notes
+Overall:
+* Since this is a stateless CLI program, each invocation must refetch and transform data that could have been precomputed and cached/stored for efficiency.
+
+Question 2:
+* For the longest and shortest subway routes, if there are two routes of the same length tied for most/last, it will just return the one it sees first, not multiple.
+* My initial implementation of question 2 was slightly more efficient than my final one. I traded off efficiency of looping through the data once to get all three answers for 1. separating the functions for better testability and 2. code re-use with part of the path-finding solution for question 3 (both use the get_subway_stop_to_routes_mapping).  

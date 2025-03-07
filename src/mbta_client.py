@@ -11,7 +11,7 @@ load_dotenv(dotenv_path="../.secrets.env")
 MBTA_API_KEY = os.getenv("MBTA_API_KEY")
 if not MBTA_API_KEY:
     print(
-        "Warning: no 'MBTA_API_KEY' set in .secrets.env, you may get rate limited... \n"
+        "Warning: no 'MBTA_API_KEY' set in .secrets.env, you may get rate limited...\n"
     )
 
 MBTA_API_BASE_URL = "https://api-v3.mbta.com"

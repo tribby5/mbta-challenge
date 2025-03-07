@@ -63,15 +63,10 @@ def find_shortest_path(
 def find_shortest_subway_path(start_id: str, end_id: str) -> list[str] | None:
     """
     Determines a viable subway route between two stops, given their ids
-    :param start_name: Name of starting stop.
-    :param end_name: Name of destination stop.
+    :param start_id: ID of the starting stop.
+    :param end_id: ID of destination stop.
     :return: List of route names forming the path, or None if no path exists.
     """
-    if not start_id or not end_id:
-        raise ValueError(
-            f"I'm sorry, please pass in valid stop names to find the path: start is valid: {start_id is not None}, end is valid: {end_id is not None}"
-        )
-
     routes_1 = get_subway_routes_for_stop(start_id)
     routes_2 = get_subway_routes_for_stop(end_id)
 
@@ -94,7 +89,10 @@ def find_shortest_subway_path(start_id: str, end_id: str) -> list[str] | None:
         return None
 
     # Convert route IDs to names
-    route_names = [
-        get_subway_route_id_to_name_mapping().get(route_id) for route_id in path
-    ]
+    id_to_name_mapping = get_subway_route_id_to_name_mapping()
+    try:
+        route_names = [id_to_name_mapping[route_id] for route_id in path]
+    except KeyError as e:
+        raise ValueError(f"Route name could not be resolved from id") from e
+
     return route_names

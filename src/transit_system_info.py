@@ -15,17 +15,19 @@ def find_longest_and_shortest_route(
     if not route_to_stops_mapping:
         return None
 
-    route_with_most = None
-    most_in_a_route = -1
-    route_with_least = None
-    least_in_a_route = sys.maxsize
-    # Collect information as we loop through for efficiency
-    for route, stops in route_to_stops_mapping.items():
+    # Initialize variables using the first item
+    iterator = iter(route_to_stops_mapping.items())
+    first_route, first_stops = next(iterator)
+    route_with_most = route_with_least = first_route
+    most_in_a_route = least_in_a_route = len(first_stops)
+
+    # Loop over the remaining items
+    for route, stops in iterator:
         number_of_stops = len(stops)
         if number_of_stops > most_in_a_route:
             most_in_a_route = number_of_stops
             route_with_most = route
-        if number_of_stops < least_in_a_route:
+        elif number_of_stops < least_in_a_route:
             least_in_a_route = number_of_stops
             route_with_least = route
 
