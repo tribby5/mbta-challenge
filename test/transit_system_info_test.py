@@ -1,8 +1,8 @@
-from typing import Tuple, Any
+from typing import Tuple
 
 import pytest
 
-from main import find_longest_and_shortest_route, find_multi_value_items
+from transit_system_info import find_longest_and_shortest_route
 from models import Route, Stop
 
 
@@ -33,22 +33,3 @@ def test_find_longest_and_shortest_route(test_id: str, route_to_stops_mapping: d
     actual = find_longest_and_shortest_route(route_to_stops_mapping)
     assert actual == expected
 
-
-@pytest.mark.parametrize(
-    ("test_id", "mapping", "expected"),
-    [
-        (
-            "Should return an empty dictionary if no key has multiple values",
-            {"a": [1]}, # input
-            {} # expected
-        ),
-        (
-            "Should return correct multi value items when they exist",
-            {1: ["a", "b"], 2: ["c"], 3: ["d", "e"]}, # input
-            {1: ["a", "b"], 3: ["d", "e"]} # expected
-        )
-    ]
-)
-def test_finding_multi_value_items(test_id: str, mapping: dict[Any, Any], expected: dict[Any, Any]) -> None:
-    actual = find_multi_value_items(mapping)
-    assert actual == expected

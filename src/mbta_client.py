@@ -7,8 +7,13 @@ from requests import get
 
 from models import Route, Stop
 
-load_dotenv(dotenv_path="./.secrets.env")
+load_dotenv(dotenv_path="../.secrets.env")
 MBTA_API_KEY = os.getenv("MBTA_API_KEY")
+if not MBTA_API_KEY:
+    print(
+        "Warning: no 'MBTA_API_KEY' set in .secrets.env, you may get rate limited... \n"
+    )
+
 MBTA_API_BASE_URL = "https://api-v3.mbta.com"
 
 
@@ -29,7 +34,7 @@ def get_subway_routes() -> list[Route]:
     headers = {"x-api-key": MBTA_API_KEY}
     response = get(url=url, params=params, headers=headers)
     response.raise_for_status()
-    return [Route.from_json(item) for item in response.json()["data"]]
+    return [Route.from_mbta_json(item) for item in response.json()["data"]]
 
 
 @lru_cache(maxsize=1)
@@ -37,11 +42,11 @@ def get_subway_stops() -> list[Stop]:
     url = f"{MBTA_API_BASE_URL}/stops"
     params = {
         "filter[route_type]": "0,1",
-    }
+    }  # type 0 = Light Rail, type 1 = Heavy Rail
     headers = {"x-api-key": MBTA_API_KEY}
     response = get(url=url, params=params, headers=headers)
     response.raise_for_status()
-    return [Stop.from_json(item) for item in response.json()["data"]]
+    return [Stop.from_mbta_json(item) for item in response.json()["data"]]
 
 
 @lru_cache()
@@ -51,7 +56,7 @@ def get_stops_for_route(route_id: str) -> list[Stop]:
     headers = {"x-api-key": MBTA_API_KEY}
     response = get(url=url, params=params, headers=headers)
     response.raise_for_status()
-    return [Stop.from_json(item) for item in response.json()["data"]]
+    return [Stop.from_mbta_json(item) for item in response.json()["data"]]
 
 
 @lru_cache(maxsize=1)
@@ -76,7 +81,7 @@ def get_subway_routes_for_stop(stop_id: str) -> set[Route]:
     headers = {"x-api-key": MBTA_API_KEY}
     response = get(url=url, params=params, headers=headers)
     response.raise_for_status()
-    return {Route.from_json(item) for item in response.json()["data"]}
+    return {Route.from_mbta_json(item) for item in response.json()["data"]}
 
 
 def get_subway_route_id_to_name_mapping() -> dict[str, str]:

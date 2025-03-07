@@ -12,7 +12,7 @@ class Route(BaseModel):
 
     # If implementing for production - could use OpenAPI spec generator for model instead: https://docs.pydantic.dev/latest/integrations/datamodel_code_generator/
     @classmethod
-    def from_json(cls, data: dict):
+    def from_mbta_json(cls, data: dict):
         try:
             return cls(id=data["id"], long_name=data["attributes"]["long_name"])
         except KeyError as e:
@@ -30,7 +30,7 @@ class Stop(BaseModel):
 
     # If implementing for production - could use OpenAPI spec generator for model instead: https://docs.pydantic.dev/latest/integrations/datamodel_code_generator/
     @classmethod
-    def from_json(cls, data: dict):
+    def from_mbta_json(cls, data: dict):
         try:
             return cls(id=data["id"], name=data["attributes"]["name"])
         except KeyError as e:

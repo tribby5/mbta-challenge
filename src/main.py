@@ -1,58 +1,24 @@
+import argparse
 import sys
-from collections import defaultdict, deque
-from typing import Tuple, Dict, Hashable, Collection, TypeVar
 
 from mbta_client import (
     get_subway_routes,
     get_subway_route_to_stops_mapping,
     get_subway_stop_to_routes_mapping,
-    get_subway_routes_for_stop,
-    get_subway_route_id_to_name_mapping,
     get_subway_stop_name_to_id_mapping,
 )
-from models import Route, Stop
+from path_finding import find_shortest_subway_path
+from transit_system_info import find_longest_and_shortest_route
+from helpers import find_multi_value_items
 
 
 def question_1() -> None:
+    """
+    Write a program that retrieves data representing all, what we'll call "subway" routes: "Light Rail" (type 0) and “Heavy Rail” (type 1). The program should list their “long names” on the console.
+    """
     print("Subway Routes:")
     for route in get_subway_routes():
-        print(f"\t{route.long_name}")
-
-
-def find_longest_and_shortest_route(
-    route_to_stops_mapping: dict[Route, set[Stop]],
-) -> Tuple[Tuple[Route, int], Tuple[Route, int]] | None:
-    """
-    Function to find the longest and shortest route and their length given a mapping
-    :param route_to_stops_mapping: Mapping of the route to their individual stops
-    :return: a tuple containing two tuples, the first with the longest route its length and the second with the same info for the shortest route
-    """
-    if not route_to_stops_mapping:
-        return None
-
-    route_with_most = None
-    most_in_a_route = -1
-    route_with_least = None
-    least_in_a_route = sys.maxsize
-    # Collect information as we loop through for efficiency
-    for route, stops in route_to_stops_mapping.items():
-        number_of_stops = len(stops)
-        if number_of_stops > most_in_a_route:
-            most_in_a_route = number_of_stops
-            route_with_most = route
-        if number_of_stops < least_in_a_route:
-            least_in_a_route = number_of_stops
-            route_with_least = route
-
-    return (route_with_most, most_in_a_route), (route_with_least, least_in_a_route)
-
-
-K = TypeVar("K", bound=Hashable)
-V = TypeVar("V", bound=Collection)
-
-
-def find_multi_value_items(mapping: Dict[K, V]) -> Dict[K, V]:
-    return {k: v for k, v in mapping.items() if len(v) >= 2}
+        print(f" > {route.long_name}")
 
 
 def question_2() -> None:
@@ -78,112 +44,80 @@ def question_2() -> None:
     mapping = get_subway_stop_to_routes_mapping()
     multi_route_stops = find_multi_value_items(mapping)
     print("\nStops that connect multiple routes:")
+
+    # pretty print
+    print(f"{'Stop':<25} Routes")
     for stop, routes in sorted(multi_route_stops.items()):
-        print(f"{stop.name}: {', '.join(sorted(r.long_name for r in routes))}")
+        print(f"{stop.name:<25} {', '.join(sorted(r.long_name for r in routes))}")
 
 
-def build_adjacency_list(
-    stop_to_routes_mapping: dict[Stop, set[Route]],
-) -> dict[str, set[str]]:
-    adj_list = defaultdict(set)
-    for routes in stop_to_routes_mapping.values():
-        # if the stop has multiple routes then those routes are connected
-        if len(routes) > 1:
-            for route in routes:
-                connected_route_ids = {r.id for r in routes} - {route.id}
-                adj_list[route.id].update(connected_route_ids)
-
-    return adj_list
-
-
-def find_shortest_path(
-    adj_list: dict[str, set[str]], start: str, end: str
-) -> list[str] | None:
+def handle_question_3_args(start_name: str, end_name: str) -> (str | None, str | None):
     """
-    Function to find a shortest path between two vertices in a graph using breadth-first search.
-    :param adj_list: An adjacency list for the graph of interest, mapping nodes to their respective sets of neighbors.
-    :param start: starting vertex for the path
-    :param end: ending vertex for the path
-    :return: List of vertices in the path or None if no path exists.
-    """
-    # Using queue for O(1) operations
-    edge_queue = deque([(start, [start])])
-    visited = set[str]()
-
-    while edge_queue:
-        vertex, path = edge_queue.popleft()
-
-        # if we reached the end, we have a shortest path
-        if vertex == end:
-            return path
-
-        # If we haven't reached the end, explore the adjacent vertices
-        for adjacent in adj_list[vertex]:
-            if adjacent not in visited:
-                # Add adjacent to our visited set so we don't loop or take longer paths
-                visited.add(adjacent)
-                edge_queue.append((adjacent, path + [adjacent]))
-
-    # if we reach the end of the queue without a path, it's not possible
-    return None
-
-
-def find_viable_path(start_name: str, end_name: str) -> list[str] | None:
-    """
-    Determines a viable subway route between two stops, given their ids
-    :param start_name: Name of starting stop.
-    :param end_name: Name of destination stop.
-    :return: List of route names forming the path, or None if no path exists.
+    Helper to take the stop names as args and make sure they can be resolved to valid stop ids before trying to find a path.
+    :param start_name: Name of the starting stop
+    :param end_name:  Name fo the ending stop
+    :return: Tuple of the ids, but either one could be None if an id wasn't found
     """
     name_to_id_mapping = get_subway_stop_name_to_id_mapping()
-    start_id = name_to_id_mapping.get(start_name.title())
-    end_id = name_to_id_mapping.get(end_name.title())
+    start_id = name_to_id_mapping.get(start_name.title().strip())
+    end_id = name_to_id_mapping.get(end_name.title().strip())
+    return start_id, end_id
 
-    if not start_id or not end_id:
-        raise ValueError(
-            f"I'm sorry, please pass in valid stop names to find the path: start is valid: {start_id is not None}, end is valid: {end_id is not None}"
+
+def question_3(args: argparse.Namespace) -> None:
+    """
+    Extend your program again such that the user can provide any two stops on the subway routes you listed for question 1.
+    List a rail route you could travel to get from one stop to the other.
+    """
+    start, end = handle_question_3_args(args.start, args.end)
+    if start is None or end is None:
+        print(
+            f"Unable to identify your requested stop(s): {args.start} is {'not' if start is None else ''} valid:, {args.end} is {'not' if end is None else ''} valid",
+            file=sys.stderr,
         )
+        sys.exit(2)
 
-    routes_1 = get_subway_routes_for_stop(start_id)
-    routes_2 = get_subway_routes_for_stop(end_id)
+    path = find_shortest_subway_path(start, end)
+    if path is None:
+        print("I'm sorry, no viable path exists between those two subway stops")
+    else:
+        print(f"{args.start.title()} -> {args.end.title()}: {' -> '.join(path)}")
 
-    if not (routes_1 and routes_2):
-        raise ValueError("Routes not found for both stops.")
 
-    # Direct connection check
-    common_routes = routes_1.intersection(routes_2)
-    if common_routes:
-        return [next(iter(common_routes)).long_name]
+def main() -> None:
+    parser = argparse.ArgumentParser(description="MBTA CLI Tool")
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # Build route adjacency list
-    adj_list = build_adjacency_list(get_subway_stop_to_routes_mapping())
+    # question 1
+    subparsers.add_parser("question-1", help="Returns the list of subway routes.")
 
-    # Find a shortest path between routes
-    path = find_shortest_path(
-        adj_list, start=next(iter(routes_1)).id, end=next(iter(routes_2)).id
+    # question 2
+    subparsers.add_parser(
+        "question-2",
+        help="Returns the longest and shortest subway routes as well as the list of stops that are used in multiple routes.",
     )
-    if not path:
-        return None
 
-    # Convert route IDs to names
-    route_names = [
-        get_subway_route_id_to_name_mapping().get(route_id) for route_id in path
-    ]
-    return route_names
+    # find path (question 3)
+    parser_find_path = subparsers.add_parser(
+        "find-path", help="Find a viable path of subway routes between two stops"
+    )
+    parser_find_path.add_argument(
+        "--start", type=str, help="Name of the starting subway stop"
+    )
+    parser_find_path.add_argument(
+        "--end", type=str, help="Name of the ending subway stop"
+    )
+
+    args = parser.parse_args()
+    if args.command == "question-1":
+        question_1()
+    elif args.command == "question-2":
+        question_2()
+    elif args.command == "find-path":
+        question_3(args)
+    else:
+        parser.print_help()
 
 
 if __name__ == "__main__":
-    args = sys.argv[1:]  # Exclude the script name
-
-    if len(args) == 3 and args[0] == "find_path":
-        path = find_viable_path(args[1], args[2])
-        if not path:
-            print("No path found :(")
-        else:
-            print(f"Path from {args[1]} -> {args[2]}: {' -> '.join(path)}")
-    elif args[0] == "question_1":
-        print("Question 1:")
-        question_1()
-    elif args[0] == "question_2":
-        print("\nQuestion 2:")
-        question_2()
+    main()

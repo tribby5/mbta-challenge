@@ -1,6 +1,6 @@
 import pytest
 
-from main import find_shortest_path, build_adjacency_list
+from path_finding import build_adjacency_list, find_shortest_path
 from models import Stop, Route
 
 
